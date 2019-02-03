@@ -1,6 +1,6 @@
 package mysql
 
-import "github.com/agparadiso/geolocalization/pkg/geoinfo"
+import "github.com/agparadiso/geolocation/pkg/geoinfo"
 
 type GeoinfoSrv struct{}
 

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	geoinfo "github.com/agparadiso/geolocalization/pkg/geoinfo/mysql"
-	"github.com/agparadiso/geolocalization/pkg/server"
+	geoinfo "github.com/agparadiso/geolocation/pkg/geoinfo/mysql"
+	"github.com/agparadiso/geolocation/pkg/server"
 	"github.com/sirupsen/logrus"
 )
 

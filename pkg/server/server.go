@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/agparadiso/geolocalization/pkg/geoinfo"
+	"github.com/agparadiso/geolocation/pkg/geoinfo"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
