@@ -11,6 +11,7 @@ RUN make build
 # Final Stage
 FROM alpine
 
+RUN apk --update add ca-certificates
 RUN mkdir /app
 WORKDIR /app
 
