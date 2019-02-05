@@ -17,13 +17,15 @@ The CSV file will be downloaded from the CSV_URL, then it will parse it, sanitiz
 
 Once the CSV is persisted it will print in the logs the amount of time it took to parse, persist and also the amount of entries that were duplicated or corrupted/incompleted. If I had more time I would probably take more time to export this metrics to eg: datadog
 
-Metrics in production:
-Duplicated: 16979, Corrupted/Incompleted 933147
-Time to parse:  1.217154816s
+In order to query the data in production you can do it by executing:
 
-In order to query the data in production you can do it by executing (with httpie):
+`curl 'https://fh-geolocation.herokuapp.com/api/v1/geoinfo?ip=207.98.167.125'`
 
-`http https://fh-geolocation.herokuapp.com/api/v1/geoinfo ip=='54.93.102.185'`
+or in local:
+
+`curl 'localhost:3000/api/v1/geoinfo?ip=207.98.167.125'`
+
+
 
 The app is running on a free heroku plan, so first time requested it can take some time to respond.
 

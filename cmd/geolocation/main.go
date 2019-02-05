@@ -21,13 +21,13 @@ func main() {
 	}
 	defer db.Close()
 
-	persister := persister.New(db)
 	logrus.Println("downloading file...")
 	err = downloadFile("file.csv", os.Getenv("CSV_URL"))
 	if err != nil {
 		logrus.Fatalf("failed to download csv: %s", err.Error())
 	}
 
+	persister := persister.New(db)
 	logrus.Println("parsing and persisting file...")
 	err = persister.PersistGeoinfo("file.csv")
 	if err != nil {
