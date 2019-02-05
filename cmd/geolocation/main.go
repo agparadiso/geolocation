@@ -15,24 +15,27 @@ import (
 )
 
 func main() {
+
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	logrus.Println("downloading file...")
-	err = downloadFile("file.csv", os.Getenv("CSV_URL"))
-	if err != nil {
-		logrus.Fatalf("failed to download csv: %s", err.Error())
-	}
+	go func() {
+		logrus.Println("downloading file...")
+		err = downloadFile("file.csv", os.Getenv("CSV_URL"))
+		if err != nil {
+			logrus.Fatalf("failed to download csv: %s", err.Error())
+		}
 
-	persister := persister.New(db)
-	logrus.Println("parsing and persisting file...")
-	err = persister.PersistGeoinfo("file.csv")
-	if err != nil {
-		logrus.Errorf("failed to persist csv: %s", err.Error())
-	}
+		persister := persister.New(db)
+		logrus.Println("parsing and persisting file...")
+		err = persister.PersistGeoinfo("file.csv")
+		if err != nil {
+			logrus.Errorf("failed to persist csv: %s", err.Error())
+		}
+	}()
 
 	geoinfoSrv := geoinfo.New(db)
 	logrus.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), server.New(geoinfoSrv)))
