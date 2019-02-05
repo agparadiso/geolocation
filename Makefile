@@ -10,3 +10,6 @@ run-local:
 
 build:
 	go build ./cmd/geolocation
+
+test:
+	go test ./...

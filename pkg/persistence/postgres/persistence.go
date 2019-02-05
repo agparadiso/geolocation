@@ -75,8 +75,9 @@ func (p *persister) ParseGeoinfo(csvReader *csv.Reader) ([]persistence.Geoinfo, 
 			Longitude:    line[5],
 			MisteryValue: line[6],
 		}
+
 		// ignore incompleted or corrupted records
-		if !incompletedOrCorrupted(g) {
+		if completedGeoinfo(g) {
 			// ignore duplicates based on the ipAddress
 			if _, ok := alreadyImported[g.IPaddres]; !ok {
 				sanitize(&g)
@@ -100,7 +101,7 @@ INSERT INTO geoinfo
 VALUES('%s', '%s', '%s', '%s', '%s', '%s', '%s')
 `
 
-func incompletedOrCorrupted(g persistence.Geoinfo) bool {
+func completedGeoinfo(g persistence.Geoinfo) bool {
 	if g.IPaddres == "" || g.CountryCode == "" || g.Country == "" || g.City == "" || g.Longitude == "" || g.Latitude == "" || g.MisteryValue == "" {
 		return false
 	}

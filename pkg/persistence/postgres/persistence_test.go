@@ -33,7 +33,7 @@ func TestParseGeoinfo(t *testing.T) {
 
 }
 
-func TestIncompletedOrCorrupted(t *testing.T) {
+func TestCompletedGeoinfo(t *testing.T) {
 	type testCase struct {
 		in       persistence.Geoinfo
 		expected bool
@@ -79,7 +79,7 @@ func TestIncompletedOrCorrupted(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if c.expected != incompletedOrCorrupted(c.in) {
+		if c.expected != completedGeoinfo(c.in) {
 			t.Fatalf("expected: %v on geoinfo: %v", c.expected, c.in)
 		}
 	}
