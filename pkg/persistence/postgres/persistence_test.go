@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"encoding/csv"
 	"reflect"
 	"strings"
 	"testing"
@@ -11,7 +10,7 @@ import (
 
 func TestParseGeoinfo(t *testing.T) {
 	in := `200.106.141.15,SI,Nepal,DuBuquemouth,-84.87503094689836,7.206435933364332,7823011346`
-	expectedGeoinfo := []persistence.Geoinfo{persistence.Geoinfo{
+	expectedGeoinfo := persistence.Geoinfo{
 		IPaddres:     "200.106.141.15",
 		CountryCode:  "SI",
 		Country:      "Nepal",
@@ -19,10 +18,8 @@ func TestParseGeoinfo(t *testing.T) {
 		Latitude:     "-84.87503094689836",
 		Longitude:    "7.206435933364332",
 		MisteryValue: "7823011346",
-	}}
-	r := csv.NewReader(strings.NewReader(in))
-	persister := New(nil)
-	geoinfo, err := persister.ParseGeoinfo(r)
+	}
+	geoinfo, err := parseGeoinfo(strings.Split(in, ","))
 	if err != nil {
 		t.Fatal("failed to parse geoinfo: ", err)
 	}
@@ -30,13 +27,12 @@ func TestParseGeoinfo(t *testing.T) {
 	if !reflect.DeepEqual(geoinfo, expectedGeoinfo) {
 		t.Fatalf("expected: %v, got: %v", expectedGeoinfo, geoinfo)
 	}
-
 }
 
-func TestCompletedGeoinfo(t *testing.T) {
+func TestIncompletedCorrupted(t *testing.T) {
 	type testCase struct {
 		in       persistence.Geoinfo
-		expected bool
+		expected error
 	}
 
 	cases := []testCase{
@@ -50,7 +46,7 @@ func TestCompletedGeoinfo(t *testing.T) {
 				Longitude:    "7.206435933364332",
 				MisteryValue: "7823011346",
 			},
-			expected: true,
+			expected: nil,
 		},
 		{
 			in: persistence.Geoinfo{
@@ -62,7 +58,7 @@ func TestCompletedGeoinfo(t *testing.T) {
 				Longitude:    "7.206435933364332",
 				MisteryValue: "7823011346",
 			},
-			expected: false,
+			expected: errIncompletedField,
 		},
 		{
 			in: persistence.Geoinfo{
@@ -74,13 +70,14 @@ func TestCompletedGeoinfo(t *testing.T) {
 				Longitude:    "7.206435933364332",
 				MisteryValue: "7823011346",
 			},
-			expected: false,
+			expected: errLatitudeNotFloat32,
 		},
 	}
 
 	for _, c := range cases {
-		if c.expected != completedGeoinfo(c.in) {
-			t.Fatalf("expected: %v on geoinfo: %v", c.expected, c.in)
+		actual := incompletedCorrupted(c.in)
+		if c.expected != actual {
+			t.Fatalf("expected: %v on geoinfo: %v, got: %v", c.expected, c.in, actual)
 		}
 	}
 }

@@ -1,10 +1,7 @@
 package persistence
 
-import "encoding/csv"
-
 type Persister interface {
 	PersistGeoinfo(csvURL string) error
-	ParseGeoinfo(csvReader *csv.Reader) ([]Geoinfo, error)
 }
 
 // Geoinfo represents the geoinfo persisted in db
