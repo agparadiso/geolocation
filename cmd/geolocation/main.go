@@ -28,7 +28,7 @@ func main() {
 		logrus.Fatalf("failed to download csv: %s", err.Error())
 	}
 
-	logrus.Println("persisting file...")
+	logrus.Println("parsing and persisting file...")
 	err = persister.PersistGeoinfo("file.csv")
 	if err != nil {
 		logrus.Errorf("failed to persist csv: %s", err.Error())
