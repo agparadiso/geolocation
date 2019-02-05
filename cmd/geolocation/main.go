@@ -7,20 +7,11 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/lib/pq"
-
 	geoinfo "github.com/agparadiso/geolocation/pkg/geoinfo/postgres"
 	persister "github.com/agparadiso/geolocation/pkg/persistence/postgres"
 	"github.com/agparadiso/geolocation/pkg/server"
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "root"
-	dbname   = "postgres"
 )
 
 func main() {
