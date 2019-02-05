@@ -1,5 +1,34 @@
 # FindHotel Coding Challenge
 
+# Notes on the solution
+
+In order to run the code in local clone the .env.dist file to a .env file with for example the following values:
+```
+PORT=3000
+DATABASE_URL=postgres://postgres:root@geolocation_db_1:5432/postgres?sslmode=disable
+CSV_URL=https://s3.amazonaws.com/gymbosses/data_dump.csv
+```
+
+this will set set the database connection and where to pull the csv from.
+
+after doing this just run: `make run-local` this will run a postgres image and the container with the app.
+
+The CSV file will be downloaded from the CSV_URL, then it will parse it, sanitize it and persist it in the db. Since the import of the db is not something we need to care at this moment no effort was done in order to decouple this at the moment.
+
+Once the CSV is persisted it will print in the logs the amount of time it took to parse, persist and also the amount of entries that were duplicated or corrupted/incompleted. If I had more time I would probably take more time to export this metrics to eg: datadog
+
+Metrics in production:
+Duplicated: 16979, Corrupted/Incompleted 933147
+Time to parse:  1.217154816s
+
+In order to query the data in production you can do it by executing (with httpie):
+
+`http https://fh-geolocation.herokuapp.com/api/v1/geoinfo ip=='54.93.102.185'`
+
+The app is running on a free heroku plan, so first time requested it can take some time to respond.
+
+# Description of the problem
+
 ## Geolocation Service
 
 ### Overview
