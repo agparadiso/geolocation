@@ -9,12 +9,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/agparadiso/geolocation/pkg/persistence"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type persister struct {
@@ -33,48 +33,73 @@ func New(db *sql.DB) persistence.Persister {
 	}
 }
 
-func (p *persister) PersistGeoinfo(csvURL string) error {
-	type stats struct {
-		duplicated          int
-		incompletecorrupted int
-	}
+type stats struct {
+	duplicated          int
+	incompletecorrupted int
+}
 
+func (p *persister) PersistGeoinfo(csvURL string) error {
 	s := &stats{}
+	var mutex = &sync.Mutex{}
 	start := time.Now()
 	csvFile, err := os.Open(csvURL)
 	if err != nil {
 		return errors.Wrap(err, "failed to open csv")
 	}
 	csvReader := csv.NewReader(bufio.NewReader(csvFile))
+	linesChan := make(chan []string)
+	errChan := make(chan error, 1)
+
+	for w := 0; w < 10; w++ {
+		go worker(p, linesChan, errChan, mutex, s)
+	}
 
 	for {
 		line, err := csvReader.Read()
 		if err == io.EOF {
+			close(linesChan)
+			close(errChan)
 			break
 		} else if err != nil {
+			close(linesChan)
+			close(errChan)
 			return errors.Wrap(err, "failed while reading csv")
 		}
 
+		select {
+		case err := <-errChan:
+			return err
+		default:
+		}
+		linesChan <- line
+	}
+	logrus.Printf("Duplicated: %d, Corrupted/Incompleted: %d", s.duplicated, s.incompletecorrupted)
+	logrus.Println("Total time to parse and persist: ", time.Since(start))
+	return nil
+}
+
+func worker(p *persister, linesChan <-chan []string, errChan chan<- error, mutex *sync.Mutex, s *stats) {
+	for line := range linesChan {
 		g, err := parseGeoinfo(line)
 		if err != nil {
+			mutex.Lock()
 			s.incompletecorrupted++
+			mutex.Unlock()
 			continue
 		}
-
 		sanitize(&g)
 		_, err = p.db.Exec(fmt.Sprintf(insertGeoinfoQuery, g.IPaddres, g.CountryCode, g.Country, g.City, g.Latitude, g.Longitude, g.MisteryValue))
 		if err != nil {
 			// ignore duplicates errors
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				mutex.Lock()
 				s.duplicated++
+				mutex.Unlock()
 				continue
 			}
-			return errors.Wrapf(err, "failed to persist geoinfo %v", g)
+			errChan <- errors.Wrapf(err, "failed to persist geoinfo %v", g)
 		}
 	}
-	logrus.Printf("Duplicated: %d, Corrupted/Incompleted %d", s.duplicated, s.incompletecorrupted)
-	logrus.Println("Total time to parse and persist: ", time.Since(start))
-	return nil
 }
 
 func parseGeoinfo(line []string) (persistence.Geoinfo, error) {

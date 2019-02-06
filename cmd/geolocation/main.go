@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	geoinfo "github.com/agparadiso/geolocation/pkg/geoinfo/postgres"
 	persister "github.com/agparadiso/geolocation/pkg/persistence/postgres"
@@ -15,7 +16,8 @@ import (
 )
 
 func main() {
-
+	//Give time until db container is up
+	time.Sleep(5 * time.Second)
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
