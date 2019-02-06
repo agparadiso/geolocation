@@ -13,25 +13,35 @@ this will set set the database connection and where to pull the csv from.
 
 after doing this just run: `make run-local` this will run a postgres image and the container with the app.
 
-The CSV file will be downloaded from the CSV_URL, then it will parse it, sanitize it and persist it in the db. Since the import of the db is not something we need to care at this moment no effort was done in order to decouple this at the moment.
+The CSV file will be downloaded from the CSV_URL, then it will run 10 concurrent gorutines (this can easily be parametrized) parse it, sanitize it and persist it in the db. Since the import of the db is not something we need to care at this moment no effort was done in order to decouple this at the moment.
 
-Once the CSV is persisted it will print in the logs the amount of time it took to parse, persist and also the amount of entries that were duplicated or corrupted/incompleted. If I had more time I would probably take more time to export this metrics to eg: datadog
+Once the CSV is persisted it will print in the logs the amount of time it took to parse, persist and also the amount of entries that were duplicated or corrupted/incompleted. 
 
-### Metrics in production:
+If I had more time:
+- I would debug the error regarding concurrent access to the stats
+- I would probably take more time to export this metrics to some external source eg: datadog
+
+### Constraints:
+Due to heroku free plan db, im using only a 65k reduced version of the dump that you can find here: `s3://gymbosses/data_dump9k.csv`
+you can still use the full version in local setting in the .env `CSV_URL=https://s3.amazonaws.com/gymbosses/data_dump.csv`
+
+The app is running on a free heroku plan, so first time requested it can take some time to respond.
+
+### Metrics in local:
 ```
-Duplicated: 16979, Corrupted/Incompleted 933147
-Time to parse:  1.964755085s
-Total time to parse and persist:  2m14.958076337s
+With 10 workers 65k:
+Total time to parse and persist:  31.1456925s
+
+With 1 worker 65k:
+Total time to parse and persist:  1m25.6940387s
 ```
 In order to query the data in production you can do it by executing:
 
-`curl 'https://fh-geolocation.herokuapp.com/api/v1/geoinfo?ip=207.98.167.125'`
+`curl 'https://fh-geolocation.herokuapp.com/api/v1/geoinfo?ip=120.99.153.8'`
 
 or in local:
 
-`curl 'localhost:3000/api/v1/geoinfo?ip=207.98.167.125'`
-
-The app is running on a free heroku plan, so first time requested it can take some time to respond.
+`curl 'localhost:3000/api/v1/geoinfo?ip=120.99.153.8'`
 
 # Description of the problem
 
