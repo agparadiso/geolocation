@@ -38,9 +38,13 @@ type stats struct {
 	incompletecorrupted int
 }
 
+const (
+	duplicated          = 0
+	incompletecorrupted = 1
+)
+
 func (p *persister) PersistGeoinfo(csvURL string) error {
 	s := &stats{}
-	var mutex = &sync.Mutex{}
 	start := time.Now()
 	csvFile, err := os.Open(csvURL)
 	if err != nil {
@@ -49,16 +53,18 @@ func (p *persister) PersistGeoinfo(csvURL string) error {
 	csvReader := csv.NewReader(bufio.NewReader(csvFile))
 	linesChan := make(chan []string)
 	errChan := make(chan error, 1)
-
+	counterChan := make(chan int, 1)
+	var counterWg sync.WaitGroup
+	go counters(s, counterChan, &counterWg)
+	var wg sync.WaitGroup
 	for w := 0; w < 10; w++ {
-		go worker(p, linesChan, errChan, mutex, s)
+		go worker(p, linesChan, errChan, counterChan, s, &wg)
 	}
 
 	for {
 		line, err := csvReader.Read()
 		if err == io.EOF {
 			close(linesChan)
-			close(errChan)
 			break
 		} else if err != nil {
 			close(linesChan)
@@ -73,18 +79,22 @@ func (p *persister) PersistGeoinfo(csvURL string) error {
 		}
 		linesChan <- line
 	}
+	wg.Wait()
+	close(counterChan)
+	counterWg.Wait()
+	close(errChan)
 	logrus.Printf("Duplicated: %d, Corrupted/Incompleted: %d", s.duplicated, s.incompletecorrupted)
 	logrus.Println("Total time to parse and persist: ", time.Since(start))
 	return nil
 }
 
-func worker(p *persister, linesChan <-chan []string, errChan chan<- error, mutex *sync.Mutex, s *stats) {
+func worker(p *persister, linesChan <-chan []string, errChan chan<- error, counterChan chan int, s *stats, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 	for line := range linesChan {
 		g, err := parseGeoinfo(line)
 		if err != nil {
-			mutex.Lock()
-			s.incompletecorrupted++
-			mutex.Unlock()
+			counterChan <- incompletecorrupted
 			continue
 		}
 		sanitize(&g)
@@ -92,12 +102,23 @@ func worker(p *persister, linesChan <-chan []string, errChan chan<- error, mutex
 		if err != nil {
 			// ignore duplicates errors
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				mutex.Lock()
-				s.duplicated++
-				mutex.Unlock()
+				counterChan <- duplicated
 				continue
 			}
 			errChan <- errors.Wrapf(err, "failed to persist geoinfo %v", g)
+		}
+	}
+}
+
+func counters(s *stats, operation <-chan int, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+	for op := range operation {
+		switch op {
+		case duplicated:
+			s.duplicated++
+		case incompletecorrupted:
+			s.incompletecorrupted++
 		}
 	}
 }
